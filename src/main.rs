@@ -15,7 +15,7 @@ struct Handler {
 impl Handler {
     async fn get_response(&self, content: String) -> Result<String, chatgpt::err::Error> {
         let response = self.client.send_message(content).await?;
-        return Ok(response.message_choices[0].message.content.clone());
+        return Ok(response.message_choices[0].message.content.to_owned());
     }
 }
 
@@ -23,23 +23,11 @@ impl Handler {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content.starts_with("drewbot") {
-            let response = self.get_response(msg.content).await;
-            match response {
-                Ok(response) => {
-                    msg.channel_id
-                        .say(&ctx.http, response)
-                        .await
-                        .expect("Could not send message");
-                }
-
-                Err(e) => {
-                    println!("Error getting response: {}", e.to_string());
-                    msg.channel_id
-                        .say(&ctx.http, "Hi There")
-                        .await
-                        .expect("Could not send message");
-                }
-            }
+            let response = self.get_response(msg.content).await.unwrap_or("Couldn't get response".to_string());
+            msg.channel_id
+                .say(&ctx.http, response)
+                .await
+                .expect("Could not send message");
         }
     }
 
