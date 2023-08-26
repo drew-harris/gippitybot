@@ -23,7 +23,10 @@ impl Handler {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content.starts_with("drewbot") {
-            let response = self.get_response(msg.content).await.unwrap_or("Couldn't get response".to_string());
+            let response = self
+                .get_response(msg.content)
+                .await
+                .unwrap_or("Couldn't get response".to_string());
             msg.channel_id
                 .say(&ctx.http, response)
                 .await
