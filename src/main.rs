@@ -22,7 +22,7 @@ impl Handler {
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content.starts_with("drewbot") {
+        if msg.content.starts_with("gippitybot") {
             let response = self
                 .get_response(msg.content)
                 .await
