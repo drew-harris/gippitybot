@@ -7,6 +7,10 @@ edition = "2021"
 
 [dependencies]
 dotenv = "0.15.0"
-chatgpt_rs = "1.2.0"
+chatgpt_rs = "1.2.3"
 serenity = {version= "0.11.6", default-features = false, features = ["client", "gateway", "rustls_backend", "model"]  }
-tokio = {version = "1.32.0", features = ["full"]}
+tokio = {version = "1.33.0", features = ["full"]}
+rand = "0.8.5"
+reqwest = {version= "0.11.22", features= ["json", "serde_json"]}
+serde = {version="1.0.189", features=["serde_derive"]}
+tide = "0.16.0"

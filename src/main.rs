@@ -1,41 +1,80 @@
-use std::env;
+mod api;
+mod server;
 
-use chatgpt::prelude::{ChatGPT, ChatGPTEngine};
+use std::{env, sync::Arc};
+
+use rand::Rng;
 use serenity::{
     async_trait,
     model::prelude::{Message, Ready},
-    prelude::{Context, EventHandler, GatewayIntents},
     Client,
 };
 
+use serenity::prelude::*;
+use server::start_ai_server;
+
 struct Handler {
-    client: ChatGPT,
+    history: Arc<RwLock<RecentHistory>>,
 }
 
-impl Handler {
-    async fn get_response(&self, content: String) -> Result<String, chatgpt::err::Error> {
-        let response = self.client.send_message(content).await?;
-        return Ok(response.message_choices[0].message.content.to_owned());
-    }
+fn get_random_int(max: u32) -> u32 {
+    rand::thread_rng().gen_range(0..max)
 }
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content.starts_with("gippitybot") {
-            let response = self
-                .get_response(msg.content)
-                .await
-                .unwrap_or("Couldn't get response".to_string());
-            msg.channel_id
-                .say(&ctx.http, response)
-                .await
-                .expect("Could not send message");
+        // If message is not from bot save it
+        if msg.author.bot {
+            return;
+        }
+
+        // Add message, scoped to quickly unlock rwlock
+        {
+            self.history.write().await.add(msg.content.clone());
+        }
+
+        let msg_amount = self.history.read().await.messages.len();
+        if (get_random_int(5) != 5 || msg_amount < 5) && msg.content != "!test" {
+            return;
+        }
+
+        let message = api::get_message(self.history.read().await.get());
+
+        match message {
+            Ok(res_msg) => msg.reply(ctx.http, res_msg).await,
+            Err(_) => msg.reply(ctx.http, "error").await,
+        }
+        .expect("sends message");
+    }
+
+    async fn ready(&self, _c: Context, r: Ready) {
+        println!("Logged in as {}", r.user.tag());
+    }
+}
+
+pub struct RecentHistory {
+    messages: Vec<String>,
+    limit: usize,
+}
+
+impl RecentHistory {
+    fn new(keep: usize) -> Self {
+        Self {
+            messages: Vec::new(),
+            limit: keep,
         }
     }
 
-    async fn ready(&self, _: Context, _: Ready) {
-        println!("Ready!");
+    fn add(&mut self, message: String) {
+        self.messages.push(message);
+        if self.messages.len() > self.limit {
+            self.messages.remove(0);
+        }
+    }
+
+    fn get(&self) -> Vec<String> {
+        self.messages.clone()
     }
 }
 
@@ -48,15 +87,17 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    // Build chatgpt client
-    let open_ai_key = env::var("OPENAI_KEY").expect("Could not get openai key");
-    let mut client = ChatGPT::new(open_ai_key).expect("Couldn't build chatgpt client");
-    client.config.engine = ChatGPTEngine::Gpt35Turbo;
+    let history = RwLock::new(RecentHistory::new(20));
+    let harc = Arc::new(history);
 
     let mut client = Client::builder(token, intents)
-        .event_handler(Handler { client })
+        .event_handler(Handler {
+            history: Arc::clone(&harc),
+        })
         .await
         .expect("Could not create client");
+
+    start_ai_server(harc).expect("START SERVER");
 
     if let Err(e) = client.start().await {
         println!("Client error: {}", e.to_string());
