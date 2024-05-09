@@ -1,6 +1,6 @@
 # Stage 1: Building the application
 # Use the official Rust image to build the Rust application
-FROM rust:1.27 as builder
+FROM rust:latest as builder
 
 # Create a new empty shell project
 RUN USER=root cargo new --bin gippitybot
