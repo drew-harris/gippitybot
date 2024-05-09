@@ -25,7 +25,7 @@ async fn get_ai_response(client: &ChatGPT<OpenAIConfig>, msg: &str) -> Result<St
             .content(msg)
             .build()?
             .into()])
-        .max_tokens(120_u16)
+        .max_tokens(360_u16)
         .build()?;
 
     let response = client
