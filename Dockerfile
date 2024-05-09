@@ -22,7 +22,7 @@ RUN rm ./target/release/deps/gippitybot*
 RUN cargo build --release
 
 # Stage 2: Setup the runtime environment
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 # Install required packages
 RUN apt-get update && apt-get install -y ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
