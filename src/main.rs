@@ -20,7 +20,7 @@ struct Handler {
 
 async fn get_ai_response(client: &ChatGPT<OpenAIConfig>, msg: &str) -> Result<String, OpenAIError> {
     let request = CreateChatCompletionRequestArgs::default()
-        .model("llama3-8b-8192")
+        .model("llama3-70b-8192")
         .messages([ChatCompletionRequestUserMessageArgs::default()
             .content(msg)
             .build()?
